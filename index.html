@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard RH — Suivi des Demandes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dashboard RH">
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Dashboard RH">
+  <style>
+    :root {
+      --bg:#f0f4f8;--bg2:#ffffff;--bg3:#f8fafc;--border:#e2e8f0;--border2:#cbd5e1;
+      --text:#0f172a;--text2:#475569;--text3:#94a3b8;
+      --accent:#6366f1;--accent2:#4f46e5;--accentbg:#eef2ff;
+      --green:#10b981;--greenbg:#ecfdf5;--yellow:#f59e0b;--yellowbg:#fffbeb;
+      --red:#ef4444;--redbg:#fef2f2;--purple:#8b5cf6;--purplebg:#f5f3ff;
+      --blue:#3b82f6;--bluebg:#eff6ff;
+      --radius:10px;--radius-lg:16px;
+      --shadow:0 1px 3px rgba(0,0,0,0.07),0 4px 16px rgba(0,0,0,0.04);
+      --shadow-lg:0 8px 32px rgba(0,0,0,0.12);
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;min-height:100vh;}
+    .topbar{background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#6366f1 100%);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 16px rgba(79,70,229,0.3);position:sticky;top:0;z-index:100;}
+    .topbar-left{display:flex;align-items:center;gap:14px;}
+    .topbar-logo{width:38px;height:38px;background:rgba(255,255,255,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+    .topbar-title{color:white;font-size:17px;font-weight:700;}
+    .topbar-sub{color:rgba(255,255,255,0.7);font-size:12px;margin-top:1px;}
+    .topbar-right{display:flex;align-items:center;gap:12px;}
+    .sync-badge{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);padding:6px 14px;border-radius:20px;color:white;font-size:12px;font-weight:500;}
+    .sync-dot{width:7px;height:7px;border-radius:50%;}
+    .sync-dot.green{background:#34d399;box-shadow:0 0 6px #34d399;}
+    .sync-dot.yellow{background:#fbbf24;animation:pulse 1.2s infinite;}
+    .sync-dot.red{background:#f87171;}
+    .sync-dot.grey{background:#94a3b8;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+    .date-chip{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);padding:6px 14px;border-radius:20px;color:white;font-size:12px;font-weight:500;}
+    .container{max-width:1600px;margin:auto;padding:28px 32px;}
+    .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px;}
+    @media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr);}}
+    .stat-card{background:var(--bg2);border-radius:var(--radius-lg);padding:20px 24px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;align-items:center;gap:16px;transition:transform 0.2s,box-shadow 0.2s;}
+    .stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);}
+    .stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+    .stat-icon.blue{background:var(--bluebg);} .stat-icon.yellow{background:var(--yellowbg);} .stat-icon.green{background:var(--greenbg);} .stat-icon.red{background:var(--redbg);} .stat-icon.purple{background:var(--purplebg);}
+    .stat-label{font-size:12px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:0.5px;}
+    .stat-num{font-size:32px;font-weight:800;margin-top:2px;line-height:1;font-family:'JetBrains Mono',monospace;}
+    .stat-num.blue{color:var(--blue);} .stat-num.yellow{color:var(--yellow);} .stat-num.green{color:var(--green);} .stat-num.red{color:var(--red);} .stat-num.purple{color:var(--purple);}
+    #alertesContainer{margin-bottom:20px;}
+    .alerte-box{background:#fff5f5;border:1px solid #fecaca;border-left:4px solid var(--red);border-radius:var(--radius-lg);padding:16px 20px;}
+    .alerte-box h3{color:#dc2626;font-size:14px;margin-bottom:10px;}
+    .alerte-item{display:flex;align-items:center;gap:10px;background:white;padding:10px 14px;border-radius:8px;margin-top:8px;border:1px solid #fee2e2;}
+    .alerte-item input{width:auto;accent-color:var(--red);}
+    .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;box-shadow:var(--shadow);}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+    .card-title{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:var(--text);}
+    .card-title .icon{width:32px;height:32px;border-radius:8px;background:var(--accentbg);color:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:15px;}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+    .field-full{grid-column:1/-1;}
+    label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;}
+    input[type="text"],input[type="number"],input[type="date"],select,textarea{width:100%;padding:10px 13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;transition:border-color 0.2s,box-shadow 0.2s;outline:none;}
+    input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,0.12);background:white;}
+    input::placeholder,textarea::placeholder{color:var(--text3);}
+    textarea{resize:vertical;min-height:80px;}
+    input[type="file"]{width:100%;padding:9px 12px;background:var(--bg3);border:1.5px dashed var(--border2);border-radius:8px;color:var(--text2);font-size:13px;cursor:pointer;}
+    .postes-list{display:flex;flex-direction:column;gap:8px;}
+    .poste-row{display:flex;align-items:center;gap:8px;}
+    .poste-row .poste-input{flex:1;}
+    .poste-row .eff-input{width:80px;flex-shrink:0;}
+    .poste-label-eff{font-size:11px;color:var(--text3);font-weight:500;white-space:nowrap;align-self:center;}
+    .btn-add-poste{background:var(--greenbg);color:var(--green);border:1.5px solid #a7f3d0;width:34px;height:38px;border-radius:8px;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;}
+    .btn-add-poste:hover{background:#d1fae5;}
+    .btn-rem-poste{background:var(--redbg);color:var(--red);border:1.5px solid #fecaca;width:34px;height:38px;border-radius:8px;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;}
+    .btn-rem-poste:hover{background:#fee2e2;}
+    .postes-tags{display:flex;flex-wrap:wrap;gap:5px;}
+    .poste-tag{background:var(--accentbg);color:var(--accent2);border:1px solid #c7d2fe;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;white-space:nowrap;}
+    .poste-tag .eff-badge{background:var(--accent2);color:white;border-radius:4px;padding:1px 5px;margin-left:4px;font-size:10px;}
+    .num-wrap{position:relative;}
+    .num-wrap input{padding-right:32px;}
+    .num-ok{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;}
+    .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+    .btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+    .btn-primary{background:linear-gradient(135deg,var(--accent2),var(--accent));color:white;box-shadow:0 2px 8px rgba(99,102,241,0.3);}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(99,102,241,0.4);}
+    .btn-success{background:var(--greenbg);color:var(--green);border:1.5px solid #a7f3d0;}
+    .btn-success:hover{background:#d1fae5;}
+    .btn-ghost{background:var(--bg3);color:var(--text2);border:1.5px solid var(--border2);}
+    .btn-ghost:hover{color:var(--text);border-color:var(--text3);background:white;}
+    .btn-purple{background:var(--purplebg);color:var(--purple);border:1.5px solid #ddd6fe;}
+    .btn-purple:hover{background:#ede9fe;}
+    .btn-orange{background:#fff7ed;color:#c2410c;border:1.5px solid #fed7aa;}
+    .btn-orange:hover{background:#ffedd5;}
+    .btn-edit{background:var(--bluebg);color:var(--blue);border:1.5px solid #bfdbfe;padding:5px 10px;font-size:12px;}
+    .btn-edit:hover{background:#dbeafe;}
+    .btn-danger{background:var(--redbg);color:var(--red);border:1.5px solid #fecaca;padding:5px 10px;font-size:12px;}
+    .btn-danger:hover{background:#fee2e2;}
+    .btn-attach{background:var(--yellowbg);color:#92400e;border:1.5px solid #fde68a;padding:5px 10px;font-size:12px;}
+    .btn-attach:hover{background:#fef3c7;}
+    .table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);}
+    table{width:100%;border-collapse:collapse;}
+    th{background:var(--bg3);color:var(--text2);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;padding:11px 14px;text-align:left;white-space:nowrap;border-bottom:2px solid var(--border);}
+    td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text);font-size:13px;vertical-align:middle;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:#fafbff;}
+    .statut-wrap{display:inline-flex;align-items:center;border-radius:20px;border:1px solid;padding:3px 10px;}
+    .statut-select{background:transparent;border:none;color:inherit;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;}
+    .badge-encours{background:var(--yellowbg);color:#92400e;border-color:#fde68a;}
+    .badge-traitee{background:var(--greenbg);color:#065f46;border-color:#a7f3d0;}
+    .badge-annulee{background:#f1f5f9;color:var(--text3);border-color:var(--border2);}
+    /* VALIDATION DG */
+    .dg-wrap{display:flex;flex-direction:column;gap:5px;align-items:flex-start;}
+    .badge-dg{border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;white-space:nowrap;display:inline-block;}
+    .badge-dg-attente{background:#f8fafc;color:var(--text3);border:1px solid var(--border2);}
+    .badge-dg-valide{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;}
+    .badge-dg-refuse{background:#fef2f2;color:#991b1b;border:1px solid #fecaca;}
+    .dg-btns{display:flex;gap:4px;flex-wrap:wrap;}
+    .btn-dg-ok{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+    .btn-dg-ok:hover{background:#d1fae5;}
+    .btn-dg-no{background:#fef2f2;color:#991b1b;border:1px solid #fecaca;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+    .btn-dg-no:hover{background:#fee2e2;}
+    .btn-dg-rst{background:var(--bg3);color:var(--text3);border:1px solid var(--border);padding:2px 7px;border-radius:6px;font-size:10px;cursor:pointer;}
+    .btn-dg-rst:hover{color:var(--text2);}
+    /* PJ */
+    .pj-list{display:flex;flex-direction:column;gap:4px;}
+    .pj-item{display:inline-flex;align-items:center;gap:5px;background:var(--bluebg);color:var(--blue);padding:3px 9px;border-radius:6px;font-size:11px;font-weight:500;text-decoration:none;border:1px solid #bfdbfe;cursor:pointer;}
+    .pj-item:hover{background:#dbeafe;}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:1000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+    .modal-overlay.open{display:flex;}
+    .modal{background:white;border-radius:20px;padding:30px;width:100%;max-width:900px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.2);animation:modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1);}
+    @keyframes modalIn{from{transform:scale(0.92) translateY(20px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--border);}
+    .modal-header h3{font-size:16px;font-weight:700;}
+    .modal-close{width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+    .modal-close:hover{background:var(--redbg);color:var(--red);border-color:#fecaca;}
+    .pj-upload-zone{border:2px dashed var(--border2);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg3);}
+    .pj-upload-zone:hover{border-color:var(--accent);background:var(--accentbg);}
+    .pj-preview-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+    .pj-preview-item{display:flex;align-items:center;justify-content:space-between;background:var(--bluebg);border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;}
+    .pj-remove{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;}
+    .filtres-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;}
+    @media(max-width:900px){.filtres-grid{grid-template-columns:1fr 1fr;}}
+    .search-wrap{position:relative;}
+    .search-wrap input{padding-left:36px;}
+    .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none;}
+    .empty-state{text-align:center;padding:48px;color:var(--text3);}
+    .empty-state .emoji{font-size:40px;margin-bottom:12px;}
+    /* MODAL STOCKAGE */
+    #storageModeLabel{display:flex;align-items:center;gap:7px;}
+    /* PWA OFFLINE BADGE */
+    #offlineBadge{display:none;position:fixed;top:70px;right:16px;background:#f59e0b;color:white;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;z-index:500;box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+
+    #toast{position:fixed;bottom:24px;right:24px;padding:13px 20px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,0.15);transform:translateY(80px);opacity:0;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:9999;max-width:360px;}
+    #toast.show{transform:translateY(0);opacity:1;background:#10b981;color:white;}
+    #toast.error{transform:translateY(0);opacity:1;background:#ef4444;color:white;}
+    ::-webkit-scrollbar{width:5px;height:5px;}
+    ::-webkit-scrollbar-track{background:var(--bg3);}
+    ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:10px;}
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">📋</div>
+    <div>
+      <div class="topbar-title">Dashboard RH — Suivi des Demandes de Personnel</div>
+      <div class="topbar-sub">Gestion centralisée des demandes de recrutement</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="sync-badge">
+      <div class="sync-dot grey" id="syncDot"></div>
+      <span id="syncStatus">Mode local</span>
+    </div>
+    <button class="date-chip" id="btnStockage" type="button" style="border:1px solid rgba(255,255,255,.2);cursor:pointer;">⚙️ Stockage</button>
+    <div class="date-chip" id="dateBadge"></div>
+    <button id="btnInstall" style="display:none;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:white;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;" title="Installer l'application">
+      📲 Installer l'app
+    </button>
+  </div>
+</div>
+
+<!-- BANNIÈRE MISE À JOUR -->
+<div id="updateBanner" style="display:none;background:#4f46e5;color:white;text-align:center;padding:10px;font-size:13px;font-weight:500;">
+  🔄 Une nouvelle version est disponible — 
+  <button onclick="mettreAJourApp()" style="background:white;color:#4f46e5;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-weight:700;margin-left:8px;">Mettre à jour</button>
+</div>
+
+<div class="container">
+  <div id="alertesContainer"></div>
+
+  <!-- STATS (5 cartes dont DG) -->
+  <div class="stats">
+    <div class="stat-card"><div class="stat-icon blue">📁</div><div><div class="stat-label">Total</div><div class="stat-num blue" id="totalDemandes">0</div></div></div>
+    <div class="stat-card"><div class="stat-icon yellow">⏳</div><div><div class="stat-label">En cours</div><div class="stat-num yellow" id="demandesEnCours">0</div></div></div>
+    <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-label">Traitées</div><div class="stat-num green" id="demandesValidees">0</div></div></div>
+    <div class="stat-card"><div class="stat-icon red">🚫</div><div><div class="stat-label">Annulées</div><div class="stat-num red" id="demandesRejetees">0</div></div></div>
+    <div class="stat-card"><div class="stat-icon purple">🏛️</div><div><div class="stat-label">Validées DG</div><div class="stat-num purple" id="demandesDGValide">0</div></div></div>
+  </div>
+
+  <!-- NOUVELLE DEMANDE -->
+  <div class="card">
+    <div class="card-header"><div class="card-title"><div class="icon">➕</div> Nouvelle Demande</div></div>
+    <div class="grid">
+      <div class="num-wrap">
+        <label>N° de demande *</label>
+        <input type="text" id="numDemande" placeholder="Ex: DEM-2026-001">
+        <span class="num-ok" id="numOk"></span>
+      </div>
+      <div><label>Date de réception *</label><input type="date" id="dateReception"></div>
+      <div><label>Demandeur *</label><input type="text" id="demandeur" placeholder="Nom du demandeur"></div>
+      <div><label>Chantier / Site</label><input type="text" id="chantier" placeholder="Nom du chantier"></div>
+      <div><label>Type de contrat</label>
+        <select id="contrat">
+          <option value="CDI">CDI</option><option value="CDD">CDD</option>
+          <option value="Prestation">Prestation</option><option value="Stage">Stage</option>
+          <option value="Journalier">Journalier</option><option value="Contrat de projet">Contrat de projet</option>
+        </select>
+      </div>
+      <div><label>Date de validation</label><input type="date" id="dateValidation"></div>
+      <div><label>Service concerné</label><input type="text" id="service" placeholder="Ex: Génie Civil"></div>
+      <div class="field-full">
+        <label>Fonction(s) &amp; Effectif(s) *</label>
+        <div class="postes-list" id="postesContainer"></div>
+      </div>
+      <div class="field-full"><label>Commentaires / Proposition RH</label><textarea id="commentaire" placeholder="Commentaires..."></textarea></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnAjouter">✚ Ajouter la demande</button>
+      <button class="btn btn-success" id="btnExcel">📊 Exporter Excel</button>
+      <button class="btn btn-ghost" id="btnReset">↺ Réinitialiser</button>
+      <button class="btn btn-purple" id="btnSave">💾 Sauvegarder le fichier</button>
+      <button class="btn btn-orange" id="btnImport">📂 Importer une sauvegarde</button>
+      <input type="file" id="importInput" accept=".html" style="display:none">
+    </div>
+  </div>
+
+  <!-- FILTRES -->
+  <div class="card">
+    <div class="card-header"><div class="card-title"><div class="icon">🔎</div> Recherche &amp; Filtres</div></div>
+    <div class="filtres-grid">
+      <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="search" placeholder="Rechercher..."></div>
+      <div><select id="filtreStatut"><option value="">Tous les statuts</option><option value="En cours">En cours</option><option value="Traitée">Traitée</option><option value="Annulée">Annulée</option></select></div>
+      <div><select id="filtreContrat"><option value="">Tous les contrats</option><option value="CDI">CDI</option><option value="CDD">CDD</option><option value="Prestation">Prestation</option><option value="Stage">Stage</option><option value="Journalier">Journalier</option><option value="Contrat de projet">Contrat de projet</option></select></div>
+      <div><select id="filtreService"><option value="">Tous les services</option></select></div>
+    </div>
+  </div>
+
+  <!-- TABLEAU -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="icon">📑</div> Tableau des Demandes</div>
+      <span id="countLabel" style="font-size:12px;color:var(--text3);font-weight:500;"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>N° Demande</th><th>Réception</th><th>Demandeur</th><th>Chantier</th>
+          <th>Fonction(s) / Effectif(s)</th><th>Service</th><th>Contrat</th><th>Statut</th>
+          <th>Validation DG</th><th>Date Valid.</th><th>Pièces jointes</th><th>Commentaire</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="tableDemandes"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MODIFICATION -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header"><h3>✏️ Modifier la demande</h3><button class="modal-close" id="btnFermerModal">✕</button></div>
+    <input type="hidden" id="editId">
+    <div class="grid">
+      <div class="num-wrap"><label>N° de demande *</label><input type="text" id="editNumDemande" placeholder="Ex: DEM-2026-001"><span class="num-ok" id="editNumOk"></span></div>
+      <div><label>Date de réception *</label><input type="date" id="editDateReception"></div>
+      <div><label>Demandeur *</label><input type="text" id="editDemandeur" placeholder="Nom du demandeur"></div>
+      <div><label>Chantier</label><input type="text" id="editChantier" placeholder="Nom du chantier"></div>
+      <div><label>Type de contrat</label><select id="editContrat"><option value="CDI">CDI</option><option value="CDD">CDD</option><option value="Prestation">Prestation</option><option value="Stage">Stage</option><option value="Journalier">Journalier</option><option value="Contrat de projet">Contrat de projet</option></select></div>
+      <div><label>Statut</label><select id="editStatut"><option value="En cours">En cours</option><option value="Traitée">Traitée</option><option value="Annulée">Annulée</option></select></div>
+      <div><label>Date de validation</label><input type="date" id="editDateValidation"></div>
+      <div><label>Service concerné</label><input type="text" id="editService" placeholder="Ex: Génie Civil"></div>
+      <div class="field-full"><label>Fonction(s) &amp; Effectif(s) *</label><div class="postes-list" id="editPostesContainer"></div></div>
+      <div class="field-full"><label>Commentaires</label><textarea id="editCommentaire" placeholder="Commentaires..."></textarea></div>
+    </div>
+    <div class="btn-row" style="margin-top:20px;">
+      <button class="btn btn-primary" id="btnSauvegarderMod">💾 Enregistrer</button>
+      <button class="btn btn-ghost" id="btnAnnulerModal">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PJ -->
+<div class="modal-overlay" id="modalPJ">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header"><h3>📎 Pièces jointes</h3><button class="modal-close" id="btnFermerPJ">✕</button></div>
+    <input type="hidden" id="pjDemandeId">
+    <div class="pj-upload-zone" id="pjUploadZone"><div style="font-size:28px;">📂</div><p style="color:var(--text2);font-size:13px;margin-top:6px;">Cliquer pour ajouter un PDF</p><p style="font-size:11px;color:var(--text3);margin-top:4px;">ou glisser-déposer</p></div>
+    <input type="file" id="pjInput" accept="application/pdf" multiple style="display:none">
+    <div class="pj-preview-list" id="pjPreviewList"></div>
+    <div class="btn-row" style="margin-top:16px;"><button class="btn btn-primary" id="btnSauvegarderPJ">💾 Enregistrer</button><button class="btn btn-ghost" id="btnFermerPJ2">Fermer</button></div>
+  </div>
+</div>
+
+<!-- MODAL STOCKAGE -->
+<div class="modal-overlay" id="modalStockage">
+  <div class="modal" style="max-width:620px;">
+    <div class="modal-header"><h3>⚙️ Stockage &amp; Sauvegarde</h3><button class="modal-close" id="btnFermerStockage">✕</button></div>
+    <div style="background:var(--accentbg);border:1px solid #c7d2fe;border-radius:12px;padding:15px;margin-bottom:18px;">
+      <div style="font-size:11px;text-transform:uppercase;color:var(--text2);font-weight:700;">Mode actuel</div>
+      <div id="storageModeLabel" style="font-size:18px;font-weight:800;color:var(--accent2);margin-top:4px;">💻 Local</div>
+      <div id="storageDetail" style="font-size:12px;color:var(--text2);margin-top:4px;">Données enregistrées dans le navigateur.</div>
+    </div>
+    <div class="grid">
+      <div><label>Mode de stockage</label><select id="storageMode"><option value="local">💻 Local — IndexedDB</option><option value="drive">☁️ Google Drive — via Apps Script</option></select></div>
+      <div><label>URL Google Apps Script</label><input type="text" id="storageScriptUrl" placeholder="https://script.google.com/macros/s/.../exec"></div>
+    </div>
+    <div style="margin-top:18px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px;">Actions de sauvegarde</div>
+      <div class="btn-row" style="margin-top:0;">
+        <button class="btn btn-primary" id="btnStorageSave">💾 Enregistrer le mode</button>
+        <button class="btn btn-success" id="btnBackupJson">⬇️ Exporter JSON</button>
+        <button class="btn btn-orange" id="btnRestoreJson">⬆️ Importer JSON</button>
+        <input type="file" id="restoreJsonInput" accept=".json,application/json" style="display:none">
+        <button class="btn btn-ghost" id="btnStorageSync">🔄 Synchroniser</button>
+      </div>
+    </div>
+    <div style="margin-top:16px;font-size:11px;color:var(--text3);line-height:1.6;"><strong>Local :</strong> les données restent sur cet ordinateur.<br><strong>Google Drive :</strong> nécessite une URL Apps Script.</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="offlineBadge">📡 Hors ligne</div>
+
+<script>
+var GOOGLE_SCRIPT_URL = 'COLLE_TON_URL_ICI';
+var demandes=[], historique=[], pjStore={}, pjTemp=[];
+var syncActive=false;
+var storageMode=localStorage.getItem('rhStorageMode')||'local';
+var storageScriptUrl=localStorage.getItem('rhStorageScriptUrl')||GOOGLE_SCRIPT_URL;
+var dbPromise=null;
+
+window.addEventListener('DOMContentLoaded',function(){
+  storageMode=localStorage.getItem('rhStorageMode')||'local';
+  storageScriptUrl=localStorage.getItem('rhStorageScriptUrl')||GOOGLE_SCRIPT_URL;
+  syncActive=storageMode==='drive'&&storageScriptUrl!=='COLLE_TON_URL_ICI'&&storageScriptUrl.trim()!=='';
+  try{demandes=JSON.parse(localStorage.getItem('demandesPersonnel')||'[]');}catch(e){demandes=[];}
+  try{historique=JSON.parse(localStorage.getItem('historiqueDemandes')||'[]');}catch(e){historique=[];}
+  try{pjStore=JSON.parse(localStorage.getItem('pjStore')||'{}');}catch(e){pjStore={};}
+  document.getElementById('dateBadge').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  initPostesContainer('postesContainer',false);
+  // Boutons
+  document.getElementById('btnAjouter').addEventListener('click',ajouterDemande);
+  document.getElementById('btnExcel').addEventListener('click',exporterExcel);
+  document.getElementById('btnReset').addEventListener('click',resetFormulaire);
+  document.getElementById('btnSave').addEventListener('click',sauvegarderFichier);
+  document.getElementById('btnImport').addEventListener('click',function(){document.getElementById('importInput').click();});
+  document.getElementById('importInput').addEventListener('change',importerSauvegarde);
+  document.getElementById('btnStockage').addEventListener('click',ouvrirStockage);
+  document.getElementById('btnFermerStockage').addEventListener('click',fermerStockage);
+  document.getElementById('modalStockage').addEventListener('click',function(e){if(e.target===this)fermerStockage();});
+  document.getElementById('btnStorageSave').addEventListener('click',enregistrerConfigurationStockage);
+  document.getElementById('btnBackupJson').addEventListener('click',exporterSauvegardeJSON);
+  document.getElementById('btnRestoreJson').addEventListener('click',function(){document.getElementById('restoreJsonInput').click();});
+  document.getElementById('restoreJsonInput').addEventListener('change',importerSauvegardeJSON);
+  document.getElementById('btnStorageSync').addEventListener('click',synchroniserStockage);
+  document.getElementById('search').addEventListener('input',afficherDemandes);
+  document.getElementById('filtreStatut').addEventListener('change',afficherDemandes);
+  document.getElementById('filtreContrat').addEventListener('change',afficherDemandes);
+  document.getElementById('filtreService').addEventListener('change',afficherDemandes);
+  document.getElementById('numDemande').addEventListener('input',function(){verifierNum(this,'numOk',null);});
+  document.getElementById('editNumDemande').addEventListener('input',function(){verifierNum(this,'editNumOk',document.getElementById('editId').value);});
+  document.getElementById('btnFermerModal').addEventListener('click',fermerModal);
+  document.getElementById('btnAnnulerModal').addEventListener('click',fermerModal);
+  document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)fermerModal();});
+  document.getElementById('btnSauvegarderMod').addEventListener('click',sauvegarderModification);
+  document.getElementById('btnFermerPJ').addEventListener('click',fermerModalPJ);
+  document.getElementById('btnFermerPJ2').addEventListener('click',fermerModalPJ);
+  document.getElementById('modalPJ').addEventListener('click',function(e){if(e.target===this)fermerModalPJ();});
+  document.getElementById('pjUploadZone').addEventListener('click',function(){document.getElementById('pjInput').click();});
+  document.getElementById('pjInput').addEventListener('change',ajouterPJ);
+  document.getElementById('btnSauvegarderPJ').addEventListener('click',sauvegarderPJ);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'){fermerModal();fermerModalPJ();fermerStockage();}});
+  initialiserStockage();
+});
+
+function initPostesContainer(cid,isEdit){
+  var pc=document.getElementById(cid); pc.innerHTML='';
+  creerLignePoste(pc,'','1',isEdit,true);
+}
+function creerLignePoste(container,valPoste,valEff,isEdit,isPremiere){
+  var row=document.createElement('div'); row.className='poste-row';
+  var inp=document.createElement('input'); inp.type='text';
+  inp.className=isEdit?'edit-poste-input poste-input':'poste-input';
+  inp.placeholder='Ex: Ferrailleur, Maçon...'; inp.value=valPoste||'';
+  var lbl=document.createElement('span'); lbl.className='poste-label-eff'; lbl.textContent='Eff:';
+  var eff=document.createElement('input'); eff.type='number';
+  eff.className=isEdit?'edit-eff-input eff-input':'eff-input';
+  eff.placeholder='1'; eff.min='1'; eff.value=valEff||'1';
+  var btn=document.createElement('button'); btn.type='button';
+  if(isPremiere){
+    btn.className='btn-add-poste'; btn.title='Ajouter une fonction'; btn.textContent='+';
+    btn.addEventListener('click',function(){creerLignePoste(document.getElementById(isEdit?'editPostesContainer':'postesContainer'),'','1',isEdit,false);});
+  } else {
+    btn.className='btn-rem-poste'; btn.title='Retirer'; btn.textContent='−';
+    btn.addEventListener('click',function(){row.remove();});
+  }
+  row.appendChild(inp); row.appendChild(lbl); row.appendChild(eff); row.appendChild(btn);
+  container.appendChild(row);
+  if(!isPremiere) inp.focus();
+}
+
+function setSyncStatus(s){
+  var dot=document.getElementById('syncDot'),txt=document.getElementById('syncStatus');
+  dot.className='sync-dot';
+  if(s==='ok'){dot.classList.add('green');txt.textContent=storageMode==='drive'?'Google Drive connecté':'Stockage local';}
+  else if(s==='loading'){dot.classList.add('yellow');txt.textContent='Synchronisation...';}
+  else if(s==='error'){dot.classList.add('red');txt.textContent='Erreur de connexion';}
+  else{dot.classList.add('grey');txt.textContent='Mode local';}
+}
+function showToast(msg,isError){
+  var t=document.getElementById('toast');t.textContent=msg;
+  t.className=isError?'error':'show';
+  setTimeout(function(){t.className='';},3500);
+}
+
+// IndexedDB
+function ouvrirDB(){
+  if(dbPromise) return dbPromise;
+  dbPromise=new Promise(function(resolve,reject){
+    if(!window.indexedDB){reject(new Error('IndexedDB indisponible'));return;}
+    var req=indexedDB.open('CSE_RH_Manager_DB',1);
+    req.onupgradeneeded=function(e){var db=e.target.result;if(!db.objectStoreNames.contains('app'))db.createObjectStore('app');};
+    req.onsuccess=function(){resolve(req.result);}; req.onerror=function(){reject(req.error);};
+  });
+  return dbPromise;
+}
+function dbSet(key,value){return ouvrirDB().then(function(db){return new Promise(function(resolve,reject){var tx=db.transaction('app','readwrite');tx.objectStore('app').put(value,key);tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error);};});});}
+function dbGet(key){return ouvrirDB().then(function(db){return new Promise(function(resolve,reject){var tx=db.transaction('app','readonly');var req=tx.objectStore('app').get(key);req.onsuccess=function(){resolve(req.result);};req.onerror=function(){reject(req.error);};});});}
+
+function sauvegarderLocal(){
+  try{localStorage.setItem('demandesPersonnel',JSON.stringify(demandes));localStorage.setItem('historiqueDemandes',JSON.stringify(historique));localStorage.setItem('pjStore',JSON.stringify(pjStore));}catch(e){}
+  if(storageMode==='local') Promise.all([dbSet('demandes',demandes),dbSet('historique',historique),dbSet('pjStore',pjStore)]).catch(function(){});
+}
+function initialiserStockage(){
+  mettreAJourInterfaceStockage();
+  if(storageMode==='local'){
+    Promise.all([dbGet('demandes'),dbGet('historique'),dbGet('pjStore')]).then(function(v){
+      if(v[0]!==undefined) demandes=v[0]||demandes;
+      if(v[1]!==undefined) historique=v[1]||historique;
+      if(v[2]!==undefined) pjStore=v[2]||pjStore;
+      sauvegarderLocal(); setSyncStatus('local'); rafraichirUI();
+    }).catch(function(){setSyncStatus('local');rafraichirUI();});
+  } else if(syncActive){chargerDepuisSheets();}
+  else{setSyncStatus('error');rafraichirUI();}
+}
+function mettreAJourInterfaceStockage(){
+  var mode=document.getElementById('storageModeLabel'),detail=document.getElementById('storageDetail');
+  var sel=document.getElementById('storageMode'),url=document.getElementById('storageScriptUrl');
+  if(!mode) return;
+  sel.value=storageMode; url.value=(storageScriptUrl&&storageScriptUrl!=='COLLE_TON_URL_ICI')?storageScriptUrl:'';
+  if(storageMode==='drive'){mode.textContent='☁️ Google Drive';detail.textContent='Synchronisation via Apps Script.';}
+  else{mode.textContent='💻 Local — IndexedDB';detail.textContent='Données stockées localement.';}
+}
+function ouvrirStockage(){mettreAJourInterfaceStockage();document.getElementById('modalStockage').classList.add('open');}
+function fermerStockage(){document.getElementById('modalStockage').classList.remove('open');}
+function enregistrerConfigurationStockage(){
+  storageMode=document.getElementById('storageMode').value;
+  storageScriptUrl=document.getElementById('storageScriptUrl').value.trim()||'COLLE_TON_URL_ICI';
+  localStorage.setItem('rhStorageMode',storageMode); localStorage.setItem('rhStorageScriptUrl',storageScriptUrl);
+  GOOGLE_SCRIPT_URL=storageScriptUrl;
+  syncActive=storageMode==='drive'&&storageScriptUrl!=='COLLE_TON_URL_ICI'&&storageScriptUrl.trim()!=='';
+  mettreAJourInterfaceStockage();
+  if(storageMode==='local'){sauvegarderLocal();setSyncStatus('local');showToast('✓ Stockage local activé.');}
+  else if(syncActive){setSyncStatus('loading');synchroniserStockage();}
+  else{setSyncStatus('error');showToast('⚠ URL Apps Script manquante.',true);}
+}
+function exporterSauvegardeJSON(){
+  var payload={version:2,dateExport:new Date().toISOString(),demandes:demandes,historique:historique,pjStore:pjStore};
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'}));
+  a.download='CSE_RH_Sauvegarde_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+  showToast('✓ Sauvegarde JSON exportée.');
+}
+function importerSauvegardeJSON(event){
+  var file=event.target.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){try{var p=JSON.parse(e.target.result);if(!Array.isArray(p.demandes)) throw new Error();demandes=p.demandes||[];historique=p.historique||[];pjStore=p.pjStore||{};sauvegarderLocal();rafraichirUI();showToast('✓ '+demandes.length+' demande(s) restaurée(s).');}catch(err){showToast('⚠ JSON invalide.',true);}};
+  reader.readAsText(file,'UTF-8'); event.target.value='';
+}
+function synchroniserStockage(){
+  if(storageMode!=='drive'||!syncActive){showToast("⚠ Configure d'abord Google Drive.",true);return;}
+  setSyncStatus('loading');
+  apiCall('saveAll',{demandes:demandes,historique:historique}).then(function(r){if(r&&r.success===false) throw new Error();setSyncStatus('ok');showToast('✓ Synchronisation terminée.');}).catch(function(){setSyncStatus('error');showToast('⚠ Sync impossible.',true);});
+}
+function apiCall(action,data){
+  var payload=Object.assign({action:action},data||{});
+  return fetch(storageScriptUrl||GOOGLE_SCRIPT_URL,{method:'POST',body:JSON.stringify(payload),headers:{'Content-Type':'text/plain'}}).then(function(r){return r.json();});
+}
+function chargerDepuisSheets(){
+  setSyncStatus('loading');
+  Promise.all([apiCall('getDemandes'),apiCall('getHistorique')]).then(function(res){
+    demandes=(res[0].demandes||[]).map(function(r){return{id:r['ID'],numDemande:r['Num Demande'],dateReception:r['Date Reception'],demandeur:r['Demandeur'],chantier:r['Chantier'],poste:r['Poste'],effectif:r['Effectif'],service:r['Service'],contrat:r['Contrat'],statut:r['Statut'],validationDG:r['Validation DG']||'En attente',dateValidation:r['Date Validation'],commentaire:r['Commentaire'],pieceJointe:r['Piece Jointe']||''};});
+    historique=res[1].historique||[]; setSyncStatus('ok'); sauvegarderLocal(); rafraichirUI();
+  }).catch(function(){setSyncStatus('error');showToast('⚠ Google Sheets inaccessible.',true);rafraichirUI();});
+}
+function rafraichirUI(){afficherDemandes();verifierAlertes();mettreAJourFiltresServices();}
+function ajouterHistorique(action,details){
+  var entry={date:new Date().toLocaleString('fr-FR'),action:action,details:details};
+  historique.unshift(entry); sauvegarderLocal();
+  if(syncActive) apiCall('addHistorique',{data:entry}).catch(function(){});
+}
+function mettreAJourFiltresServices(){
+  var el=document.getElementById('filtreService'),cur=el.value,svcs=[];
+  demandes.forEach(function(d){if(d.service&&svcs.indexOf(d.service)===-1) svcs.push(d.service);}); svcs.sort();
+  el.innerHTML='<option value="">Tous les services</option>';
+  svcs.forEach(function(s){el.innerHTML+='<option value="'+s+'"'+(s===cur?' selected':'')+'>'+s+'</option>';});
+}
+function verifierNum(input,okId,excludeId){
+  var val=input.value.trim(),ok=document.getElementById(okId); input.style.borderColor='';
+  if(!val){ok.textContent='';return;}
+  var existe=demandes.find(function(d){return d.numDemande&&d.numDemande.trim().toLowerCase()===val.toLowerCase()&&String(d.id)!==String(excludeId);});
+  if(existe){ok.textContent='🚨';input.style.borderColor='var(--red)';}
+  else{ok.textContent='✅';input.style.borderColor='var(--green)';}
+}
+function lirePostes(cid,ic,ec){
+  var rows=document.getElementById(cid).querySelectorAll('.poste-row'),result=[];
+  rows.forEach(function(row){var inp=row.querySelector('.'+ic),eff=row.querySelector('.'+ec);var p=inp?inp.value.trim():'',e=eff?(eff.value||'1'):'1';if(p) result.push({poste:p,effectif:e});});
+  return result;
+}
+function postesToString(arr){return arr.map(function(p){return p.poste+'|'+p.effectif;}).join(';;');}
+function stringToPostes(str){
+  if(!str) return [];
+  return str.split(';;').map(function(s){var pts=s.split('|');return{poste:pts[0]||'',effectif:pts[1]||'1'};}).filter(function(p){return p.poste;});
+}
+function ajouterDemande(){
+  var num=document.getElementById('numDemande').value.trim();
+  var dr=document.getElementById('dateReception').value;
+  var dem=document.getElementById('demandeur').value.trim();
+  var postes=lirePostes('postesContainer','poste-input','eff-input');
+  if(!num){showToast('⚠ N° de demande obligatoire.',true);return;}
+  if(!dr){showToast('⚠ Date de réception obligatoire.',true);return;}
+  if(!dem){showToast('⚠ Demandeur obligatoire.',true);return;}
+  if(!postes.length){showToast('⚠ Au moins une fonction obligatoire.',true);return;}
+  var doublon=demandes.find(function(d){return d.numDemande&&d.numDemande.trim().toLowerCase()===num.toLowerCase();});
+  if(doublon){showToast('🚨 Ce numéro de demande existe déjà !',true);return;}
+  var demande={id:Date.now(),numDemande:num,dateReception:dr,demandeur:dem,chantier:document.getElementById('chantier').value.trim(),poste:postesToString(postes),effectif:postes.map(function(p){return p.effectif;}).join('/'),service:document.getElementById('service').value.trim(),contrat:document.getElementById('contrat').value,statut:'En cours',validationDG:'En attente',dateValidation:document.getElementById('dateValidation').value,commentaire:document.getElementById('commentaire').value.trim(),pieceJointe:''};
+  demandes.unshift(demande); sauvegarderLocal(); rafraichirUI();
+  ajouterHistorique('Nouvelle demande','['+num+'] '+dem+' — '+postes.map(function(p){return p.poste+' (x'+p.effectif+')';}).join(', '));
+  resetFormulaire(); showToast('✓ Demande ajoutée !');
+  if(syncActive){setSyncStatus('loading');apiCall('addDemande',{data:demande}).then(function(){setSyncStatus('ok');}).catch(function(){setSyncStatus('error');});}
+}
+function resetFormulaire(){
+  ['numDemande','dateReception','demandeur','chantier','service','commentaire'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';el.style.borderColor='';}});
+  document.getElementById('dateValidation').value=''; document.getElementById('contrat').selectedIndex=0;
+  document.getElementById('numOk').textContent=''; initPostesContainer('postesContainer',false);
+}
+function changerStatut(id,val){
+  var d=demandes.find(function(d){return String(d.id)===String(id);}); if(!d) return;
+  d.statut=val; sauvegarderLocal(); rafraichirUI();
+  ajouterHistorique('Statut',d.demandeur+' → '+val); showToast('✓ Statut : '+val);
+  if(syncActive) apiCall('updateStatut',{id:String(id),statut:val}).then(function(){setSyncStatus('ok');}).catch(function(){setSyncStatus('error');});
+}
+function changerValidationDG(id,val){
+  var d=demandes.find(function(d){return String(d.id)===String(id);}); if(!d) return;
+  d.validationDG=val; sauvegarderLocal(); rafraichirUI();
+  var ico=val==='Validé'?'✅':val==='Refusé'?'❌':'⏳';
+  ajouterHistorique('Validation DG','['+d.numDemande+'] '+d.demandeur+' → DG '+val);
+  showToast(ico+' DG : '+val+' — '+d.demandeur);
+  if(syncActive) apiCall('updateDemande',{data:d}).then(function(){setSyncStatus('ok');}).catch(function(){setSyncStatus('error');});
+}
+function supprimerDemande(id){
+  var d=demandes.find(function(d){return String(d.id)===String(id);});
+  if(!d||!confirm('Supprimer la demande "'+d.numDemande+'" de '+d.demandeur+' ?')) return;
+  demandes=demandes.filter(function(d){return String(d.id)!==String(id);}); sauvegarderLocal();
+  ajouterHistorique('Suppression',d.demandeur+' — '+d.numDemande); rafraichirUI(); showToast('Demande supprimée.',true);
+  if(syncActive) apiCall('deleteDemande',{id:String(id)}).then(function(){setSyncStatus('ok');}).catch(function(){setSyncStatus('error');});
+}
+function verifierAlertes(){
+  var container=document.getElementById('alertesContainer'); container.innerHTML='';
+  var masquees=[]; try{masquees=JSON.parse(localStorage.getItem('alertesMasquees')||'[]');}catch(e){}
+  var aujourd=new Date();
+  var retard=demandes.filter(function(d){if(d.statut!=='En cours'||!d.dateValidation) return false;var diff=(aujourd-new Date(d.dateValidation))/86400000;return diff>5&&masquees.indexOf(String(d.id))===-1;});
+  if(!retard.length) return;
+  var html='<div class="alerte-box"><h3>⚠️ '+retard.length+' demande(s) en retard (> 5 jours)</h3>';
+  retard.forEach(function(d){html+='<div class="alerte-item"><input type="checkbox" data-id="'+d.id+'" class="alerte-cb"><span><strong>'+d.demandeur+'</strong> — '+d.numDemande+'</span></div>';});
+  html+='</div>'; container.innerHTML=html;
+  container.querySelectorAll('.alerte-cb').forEach(function(cb){
+    cb.addEventListener('change',function(){var id=this.getAttribute('data-id'),am=[];try{am=JSON.parse(localStorage.getItem('alertesMasquees')||'[]');}catch(e){}if(this.checked){if(am.indexOf(id)===-1)am.push(id);}else am=am.filter(function(a){return a!==id;});localStorage.setItem('alertesMasquees',JSON.stringify(am));verifierAlertes();});
+  });
+}
+function formatDate(val){if(!val) return '—';var s=String(val).slice(0,10),pts=s.split('-');if(pts.length===3) return pts[2]+'/'+pts[1]+'/'+pts[0];return s;}
+function afficherDemandes(){
+  var tbody=document.getElementById('tableDemandes');
+  var search=document.getElementById('search').value.toLowerCase();
+  var fS=document.getElementById('filtreStatut').value,fC=document.getElementById('filtreContrat').value,fSv=document.getElementById('filtreService').value;
+  var filtered=demandes.filter(function(d){var txt=[d.demandeur,d.chantier,d.poste,d.service,d.commentaire,d.numDemande].join(' ').toLowerCase();return txt.indexOf(search)!==-1&&(!fS||d.statut===fS)&&(!fC||d.contrat===fC)&&(!fSv||d.service===fSv);});
+  document.getElementById('countLabel').textContent=filtered.length+' résultat'+(filtered.length>1?'s':'');
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="14"><div class="empty-state"><div class="emoji">📭</div><p>Aucune demande trouvée.</p></div></td></tr>';} 
+  else {
+    tbody.innerHTML='';
+    filtered.forEach(function(d,i){
+      var cfg=d.statut==='Traitée'?'traitee':d.statut==='Annulée'?'annulee':'encours';
+      var opts=['En cours','Traitée','Annulée'].map(function(s){return'<option value="'+s+'"'+(d.statut===s?' selected':'')+'>'+s+'</option>';}).join('');
+      var pa=stringToPostes(d.poste);
+      var tags=pa.length?pa.map(function(p){return'<span class="poste-tag">'+p.poste+'<span class="eff-badge">x'+p.effectif+'</span></span>';}).join(''):'<span style="color:var(--text3)">—</span>';
+      var pjFiles=pjStore[String(d.id)]||[];
+      var pjHtml=pjFiles.length?pjFiles.map(function(pj){return'<a class="pj-item" data-id="'+d.id+'" data-nom="'+encodeURIComponent(pj.nom)+'">📄 '+pj.nom+'</a>';}).join(''):'<span style="color:var(--text3);font-size:12px">—</span>';
+      // DG
+      var dg=d.validationDG||'En attente';
+      var dgCls=dg==='Validé'?'badge-dg-valide':dg==='Refusé'?'badge-dg-refuse':'badge-dg-attente';
+      var dgIco=dg==='Validé'?'✅':dg==='Refusé'?'❌':'⏳';
+      var dgBtns=dg==='En attente'
+        ?'<div class="dg-btns"><button class="btn-dg-ok" data-id="'+d.id+'" data-dg="Validé">✅ Valider</button><button class="btn-dg-no" data-id="'+d.id+'" data-dg="Refusé">❌ Refuser</button></div>'
+        :'<div class="dg-btns"><button class="btn-dg-rst" data-id="'+d.id+'" data-dg="En attente">↺</button></div>';
+      var dgHtml='<div class="dg-wrap"><span class="badge-dg '+dgCls+'">'+dgIco+' '+dg+'</span>'+dgBtns+'</div>';
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td style="color:var(--text3);font-family:monospace;font-size:11px">'+(i+1)+'</td>'
+        +'<td><span style="font-family:monospace;font-size:11px;background:var(--accentbg);color:var(--accent2);padding:3px 8px;border-radius:6px;font-weight:600">'+(d.numDemande||'—')+'</span></td>'
+        +'<td style="font-family:monospace;font-size:12px;white-space:nowrap">'+formatDate(d.dateReception)+'</td>'
+        +'<td style="font-weight:600">'+d.demandeur+'</td>'
+        +'<td style="color:var(--text2)">'+(d.chantier||'—')+'</td>'
+        +'<td><div class="postes-tags">'+tags+'</div></td>'
+        +'<td style="color:var(--text2)">'+(d.service||'—')+'</td>'
+        +'<td><span style="background:var(--bg3);padding:3px 9px;border-radius:6px;font-size:11px;color:var(--text2);border:1px solid var(--border);font-weight:600">'+d.contrat+'</span></td>'
+        +'<td><div class="statut-wrap badge-'+cfg+'"><select class="statut-select badge-'+cfg+'" data-id="'+d.id+'">'+opts+'</select></div></td>'
+        +'<td>'+dgHtml+'</td>'
+        +'<td style="font-family:monospace;font-size:12px;white-space:nowrap">'+formatDate(d.dateValidation)+'</td>'
+        +'<td><div class="pj-list">'+pjHtml+'</div></td>'
+        +'<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:12px">'+(d.commentaire||'—')+'</td>'
+        +'<td><div style="display:flex;gap:5px;">'
+          +'<button class="btn btn-edit" data-id="'+d.id+'">✏️</button>'
+          +'<button class="btn btn-attach" data-id="'+d.id+'">📎</button>'
+          +'<button class="btn btn-danger" data-id="'+d.id+'">🗑</button>'
+        +'</div></td>';
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('.statut-select').forEach(function(sel){sel.addEventListener('change',function(){changerStatut(this.getAttribute('data-id'),this.value);});});
+    tbody.querySelectorAll('.btn-edit').forEach(function(btn){btn.addEventListener('click',function(){ouvrirModal(this.getAttribute('data-id'));});});
+    tbody.querySelectorAll('.btn-attach').forEach(function(btn){btn.addEventListener('click',function(){ouvrirModalPJ(this.getAttribute('data-id'));});});
+    tbody.querySelectorAll('.btn-danger').forEach(function(btn){btn.addEventListener('click',function(){supprimerDemande(this.getAttribute('data-id'));});});
+    tbody.querySelectorAll('.pj-item').forEach(function(a){a.addEventListener('click',function(){ouvrirPDF(this.getAttribute('data-id'),this.getAttribute('data-nom'));});});
+    tbody.querySelectorAll('.btn-dg-ok,.btn-dg-no,.btn-dg-rst').forEach(function(btn){btn.addEventListener('click',function(){changerValidationDG(this.getAttribute('data-id'),this.getAttribute('data-dg'));});});
+  }
+  document.getElementById('totalDemandes').textContent=demandes.length;
+  document.getElementById('demandesEnCours').textContent=demandes.filter(function(d){return d.statut==='En cours';}).length;
+  document.getElementById('demandesValidees').textContent=demandes.filter(function(d){return d.statut==='Traitée';}).length;
+  document.getElementById('demandesRejetees').textContent=demandes.filter(function(d){return d.statut==='Annulée';}).length;
+  document.getElementById('demandesDGValide').textContent=demandes.filter(function(d){return d.validationDG==='Validé';}).length;
+}
+function ouvrirModal(id){
+  var d=demandes.find(function(d){return String(d.id)===String(id);}); if(!d) return;
+  document.getElementById('editId').value=d.id;
+  document.getElementById('editNumDemande').value=d.numDemande||'';
+  document.getElementById('editNumOk').textContent='';
+  document.getElementById('editDateReception').value=d.dateReception||'';
+  document.getElementById('editDemandeur').value=d.demandeur||'';
+  document.getElementById('editChantier').value=d.chantier||'';
+  document.getElementById('editContrat').value=d.contrat||'CDI';
+  document.getElementById('editStatut').value=d.statut||'En cours';
+  document.getElementById('editDateValidation').value=d.dateValidation||'';
+  document.getElementById('editService').value=d.service||'';
+  document.getElementById('editCommentaire').value=d.commentaire||'';
+  var pc=document.getElementById('editPostesContainer'); pc.innerHTML='';
+  var pa=stringToPostes(d.poste); if(!pa.length) pa.push({poste:'',effectif:'1'});
+  pa.forEach(function(p,idx){creerLignePoste(pc,p.poste,p.effectif,true,idx===0);});
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function fermerModal(){document.getElementById('modalOverlay').classList.remove('open');}
+function sauvegarderModification(){
+  var id=document.getElementById('editId').value;
+  var num=document.getElementById('editNumDemande').value.trim();
+  var dr=document.getElementById('editDateReception').value;
+  var dem=document.getElementById('editDemandeur').value.trim();
+  var postes=lirePostes('editPostesContainer','poste-input','eff-input');
+  if(!num){showToast('⚠ N° demande obligatoire.',true);return;}
+  if(!dr){showToast('⚠ Date obligatoire.',true);return;}
+  if(!dem){showToast('⚠ Demandeur obligatoire.',true);return;}
+  if(!postes.length){showToast('⚠ Au moins une fonction.',true);return;}
+  var doublon=demandes.find(function(d){return d.numDemande&&d.numDemande.trim().toLowerCase()===num.toLowerCase()&&String(d.id)!==String(id);});
+  if(doublon){showToast('🚨 N° demande déjà utilisé !',true);return;}
+  var d=demandes.find(function(d){return String(d.id)===String(id);}); if(!d) return;
+  var anc=d.statut;
+  d.numDemande=num; d.dateReception=dr; d.demandeur=dem;
+  d.chantier=document.getElementById('editChantier').value.trim();
+  d.poste=postesToString(postes); d.effectif=postes.map(function(p){return p.effectif;}).join('/');
+  d.contrat=document.getElementById('editContrat').value;
+  d.statut=document.getElementById('editStatut').value;
+  d.dateValidation=document.getElementById('editDateValidation').value;
+  d.service=document.getElementById('editService').value.trim();
+  d.commentaire=document.getElementById('editCommentaire').value.trim();
+  if(!d.validationDG) d.validationDG='En attente';
+  sauvegarderLocal(); rafraichirUI(); fermerModal();
+  ajouterHistorique('Modification','['+num+'] '+dem+(d.statut!==anc?' | '+anc+' → '+d.statut:''));
+  showToast('✓ Demande modifiée !');
+  if(syncActive) apiCall('updateDemande',{data:d}).then(function(){setSyncStatus('ok');}).catch(function(){setSyncStatus('error');});
+}
+function ouvrirModalPJ(id){document.getElementById('pjDemandeId').value=id;pjTemp=(pjStore[String(id)]||[]).map(function(p){return{nom:p.nom,data:p.data};});renderPJPreview();document.getElementById('modalPJ').classList.add('open');}
+function fermerModalPJ(){document.getElementById('modalPJ').classList.remove('open');pjTemp=[];}
+function ajouterPJ(event){
+  var files=Array.from(event.target.files),done=0; if(!files.length) return;
+  files.forEach(function(f){
+    if(pjTemp.find(function(p){return p.nom===f.name;})){done++;if(done===files.length)renderPJPreview();return;}
+    var reader=new FileReader();
+    reader.onload=function(e){pjTemp.push({nom:f.name,data:e.target.result});done++;if(done===files.length)renderPJPreview();};
+    reader.readAsDataURL(f);
+  }); event.target.value='';
+}
+function renderPJPreview(){
+  var list=document.getElementById('pjPreviewList');
+  if(!pjTemp.length){list.innerHTML='<p style="color:var(--text3);font-size:12px;text-align:center;padding:10px">Aucun fichier</p>';return;}
+  list.innerHTML='';
+  pjTemp.forEach(function(pj){
+    var item=document.createElement('div'); item.className='pj-preview-item';
+    var link=document.createElement('a'); link.href=pj.data; link.target='_blank';
+    link.style.cssText='color:var(--blue);font-size:13px;font-weight:500;text-decoration:none;display:flex;align-items:center;gap:6px;';
+    link.innerHTML='📄 '+pj.nom+' <span style="font-size:10px;background:var(--bluebg);padding:2px 6px;border-radius:4px;">Ouvrir</span>';
+    var rem=document.createElement('button'); rem.className='pj-remove'; rem.textContent='✕';
+    (function(nom){rem.addEventListener('click',function(){pjTemp=pjTemp.filter(function(p){return p.nom!==nom;});renderPJPreview();});})(pj.nom);
+    item.appendChild(link); item.appendChild(rem); list.appendChild(item);
+  });
+}
+function ouvrirPDF(demandeId,nomEncode){
+  var nom=decodeURIComponent(nomEncode),files=pjStore[String(demandeId)]||[],pj=files.find(function(p){return p.nom===nom;});
+  if(!pj){showToast('⚠ Fichier non disponible.',true);return;}
+  var win=window.open(); win.document.write('<iframe src="'+pj.data+'" style="width:100%;height:100vh;border:none;"></iframe>');
+}
+function sauvegarderPJ(){
+  var id=document.getElementById('pjDemandeId').value,d=demandes.find(function(d){return String(d.id)===String(id);});
+  if(!d) return;
+  pjStore[String(id)]=pjTemp.map(function(p){return{nom:p.nom,data:p.data};}); d.pieceJointe=pjTemp.map(function(p){return p.nom;}).join('|');
+  sauvegarderLocal(); rafraichirUI(); fermerModalPJ();
+  ajouterHistorique('PJ',d.demandeur+' — '+pjTemp.length+' fichier(s)');
+  showToast('✓ '+pjTemp.length+' pièce(s) enregistrée(s) !');
+  if(syncActive) apiCall('updateDemande',{data:d}).then(function(){setSyncStatus('ok');}).catch(function(){setSyncStatus('error');});
+}
+function exporterExcel(){
+  if(!demandes.length){showToast('Aucune donnée.',true);return;}
+  var headers=['N° Demande','Date Réception','Demandeur','Chantier','Fonction(s)','Effectif(s)','Service','Contrat','Statut','Validation DG','Date Validation','Commentaire'];
+  var rows=demandes.map(function(d){var pa=stringToPostes(d.poste);return[d.numDemande,d.dateReception,d.demandeur,d.chantier,pa.map(function(p){return p.poste;}).join(' / '),pa.map(function(p){return p.effectif;}).join(' / '),d.service,d.contrat,d.statut,d.validationDG||'En attente',d.dateValidation,d.commentaire];});
+  var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table border="1"><tr>'+headers.map(function(h){return'<th>'+h+'</th>';}).join('')+'</tr>'+rows.map(function(r){return'<tr>'+r.map(function(c){return'<td>'+(c||'')+'</td>';}).join('')+'</tr>';}).join('')+'</table></body></html>';
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([html],{type:'application/vnd.ms-excel'}));
+  a.download='demandes_rh_'+new Date().toISOString().slice(0,10)+'.xls'; a.click();
+  showToast('✓ Export Excel lancé !');
+}
+function sauvegarderFichier(){
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['<!DOCTYPE html>'+document.documentElement.outerHTML],{type:'text/html;charset=utf-8'}));
+  a.download='dashboard_rh_'+new Date().toISOString().slice(0,10)+'.html'; a.click();
+  showToast('✓ Fichier sauvegardé !');
+}
+function importerSauvegarde(event){
+  var file=event.target.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var iframe=document.createElement('iframe'); iframe.style.display='none'; iframe.srcdoc=e.target.result; document.body.appendChild(iframe);
+    iframe.onload=function(){try{var ls=iframe.contentWindow.localStorage;var d=ls.getItem('demandesPersonnel'),h=ls.getItem('historiqueDemandes'),pj=ls.getItem('pjStore');if(d){demandes=JSON.parse(d);localStorage.setItem('demandesPersonnel',d);}if(h){historique=JSON.parse(h);localStorage.setItem('historiqueDemandes',h);}if(pj){pjStore=JSON.parse(pj);localStorage.setItem('pjStore',pj);}document.body.removeChild(iframe);rafraichirUI();showToast('✓ '+demandes.length+' demande(s) importée(s) !');}catch(err){document.body.removeChild(iframe);showToast('⚠ Impossible de lire la sauvegarde.',true);}};
+  };
+  reader.readAsText(file,'UTF-8'); event.target.value='';
+}
+
+// ═══════════════════════════════════════════
+//  PWA — Service Worker & Installation
+// ═══════════════════════════════════════════
+
+var deferredPrompt = null;
+var swRegistration = null;
+
+// Enregistrement du Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').then(function(reg) {
+      swRegistration = reg;
+      console.log('[PWA] Service Worker enregistré');
+
+      // Vérifier les mises à jour
+      reg.addEventListener('updatefound', function() {
+        var newWorker = reg.installing;
+        newWorker.addEventListener('statechange', function() {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            document.getElementById('updateBanner').style.display = 'block';
+          }
+        });
+      });
+    }).catch(function(err) {
+      console.warn('[PWA] Service Worker non enregistré:', err);
+    });
+  });
+}
+
+// Mise à jour de l'app
+function mettreAJourApp() {
+  if (swRegistration && swRegistration.waiting) {
+    swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+  }
+  document.getElementById('updateBanner').style.display = 'none';
+  window.location.reload();
+}
+
+// Bouton d'installation PWA
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('btnInstall').style.display = 'block';
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  var btnInstall = document.getElementById('btnInstall');
+  if (btnInstall) {
+    btnInstall.addEventListener('click', function() {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(result) {
+        if (result.outcome === 'accepted') {
+          showToast('✓ Application installée avec succès !');
+          btnInstall.style.display = 'none';
+        }
+        deferredPrompt = null;
+      });
+    });
+  }
+});
+
+// Après installation
+window.addEventListener('appinstalled', function() {
+  showToast('🎉 Dashboard RH installé comme application !');
+  document.getElementById('btnInstall').style.display = 'none';
+  deferredPrompt = null;
+});
+
+// Détection hors ligne / en ligne
+window.addEventListener('offline', function() {
+  document.getElementById('offlineBadge').style.display = 'block';
+  showToast('📡 Vous êtes hors ligne — les données locales sont disponibles.', true);
+});
+window.addEventListener('online', function() {
+  document.getElementById('offlineBadge').style.display = 'none';
+  showToast('✅ Connexion rétablie !');
+  if (syncActive) chargerDepuisSheets();
+});
+</script>
+</body>
+</html>
