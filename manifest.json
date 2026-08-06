@@ -25,7 +25,7 @@
       "short_name": "Nouvelle",
       "description": "Ajouter une nouvelle demande",
       "url": "/dashboard-rh/#nouvelle",
-      "icons": [{ "src": "icons/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "icon-96x96.png", "sizes": "96x96" }]
     }
   ]
 }
