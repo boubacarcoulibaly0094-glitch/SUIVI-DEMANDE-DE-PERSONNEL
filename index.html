@@ -319,14 +319,16 @@
 var GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuhdimK5MXXOpyolysPAPO58ngYhgORpwczBaOJ_HOTbnLajgvipTjQIVBAJmHwKPY/exec';
 var demandes=[], historique=[], pjStore={}, pjTemp=[];
 var syncActive=false;
-var storageMode=localStorage.getItem('rhStorageMode')||'local';
-var storageScriptUrl=localStorage.getItem('rhStorageScriptUrl')||GOOGLE_SCRIPT_URL;
+var storageMode='drive';
+var storageScriptUrl=GOOGLE_SCRIPT_URL;
 var dbPromise=null;
 
 window.addEventListener('DOMContentLoaded',function(){
-  storageMode=localStorage.getItem('rhStorageMode')||'local';
-  storageScriptUrl=localStorage.getItem('rhStorageScriptUrl')||GOOGLE_SCRIPT_URL;
-  syncActive=storageMode==='drive'&&storageScriptUrl!=='https://script.google.com/macros/s/AKfycbxuhdimK5MXXOpyolysPAPO58ngYhgORpwczBaOJ_HOTbnLajgvipTjQIVBAJmHwKPY/exec'&&storageScriptUrl.trim()!=='';
+  storageMode='drive';
+  storageScriptUrl=GOOGLE_SCRIPT_URL;
+  syncActive=true;
+  localStorage.setItem('rhStorageMode','drive');
+  localStorage.setItem('rhStorageScriptUrl',GOOGLE_SCRIPT_URL);
   try{demandes=JSON.parse(localStorage.getItem('demandesPersonnel')||'[]');}catch(e){demandes=[];}
   try{historique=JSON.parse(localStorage.getItem('historiqueDemandes')||'[]');}catch(e){historique=[];}
   try{pjStore=JSON.parse(localStorage.getItem('pjStore')||'{}');}catch(e){pjStore={};}
@@ -453,7 +455,7 @@ function mettreAJourInterfaceStockage(){
   var mode=document.getElementById('storageModeLabel'),detail=document.getElementById('storageDetail');
   var sel=document.getElementById('storageMode'),url=document.getElementById('storageScriptUrl');
   if(!mode) return;
-  sel.value=storageMode; url.value=(storageScriptUrl&&storageScriptUrl!=='https://script.google.com/macros/s/AKfycbxuhdimK5MXXOpyolysPAPO58ngYhgORpwczBaOJ_HOTbnLajgvipTjQIVBAJmHwKPY/exec')?storageScriptUrl:'';
+  sel.value=storageMode; url.value=GOOGLE_SCRIPT_URL||storageScriptUrl||'';
   if(storageMode==='drive'){mode.textContent='☁️ Google Drive';detail.textContent='Synchronisation via Apps Script.';}
   else{mode.textContent='💻 Local — IndexedDB';detail.textContent='Données stockées localement.';}
 }
@@ -461,10 +463,10 @@ function ouvrirStockage(){mettreAJourInterfaceStockage();document.getElementById
 function fermerStockage(){document.getElementById('modalStockage').classList.remove('open');}
 function enregistrerConfigurationStockage(){
   storageMode=document.getElementById('storageMode').value;
-  storageScriptUrl=document.getElementById('storageScriptUrl').value.trim()||'https://script.google.com/macros/s/AKfycbxuhdimK5MXXOpyolysPAPO58ngYhgORpwczBaOJ_HOTbnLajgvipTjQIVBAJmHwKPY/exec';
+  var champUrl=document.getElementById('storageScriptUrl').value.trim();
+  storageScriptUrl=champUrl||GOOGLE_SCRIPT_URL;
   localStorage.setItem('rhStorageMode',storageMode); localStorage.setItem('rhStorageScriptUrl',storageScriptUrl);
-  GOOGLE_SCRIPT_URL=storageScriptUrl;
-  syncActive=storageMode==='drive'&&storageScriptUrl!=='https://script.google.com/macros/s/AKfycbxuhdimK5MXXOpyolysPAPO58ngYhgORpwczBaOJ_HOTbnLajgvipTjQIVBAJmHwKPY/exec'&&storageScriptUrl.trim()!=='';
+  syncActive=storageMode==='drive'&&storageScriptUrl&&storageScriptUrl.trim()!=='';
   mettreAJourInterfaceStockage();
   if(storageMode==='local'){sauvegarderLocal();setSyncStatus('local');showToast('✓ Stockage local activé.');}
   else if(syncActive){setSyncStatus('loading');synchroniserStockage();}
