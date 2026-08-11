@@ -350,7 +350,7 @@ window.addEventListener('DOMContentLoaded',function(){
   // Si on a des données locales plus récentes, pousser vers Sheets
   // Sinon charger depuis Sheets
   if(demandes.length > 0){
-    if(confirm('Envoyer vos données locales vers Google Sheets ? (écrase les données en ligne)')){
+    if(confirm('Envoyer vos données locales vers Google Sheets ?')){
       pousserVersSheets();
     } else {
       chargerDepuisSheets();
@@ -485,7 +485,7 @@ function importerSauvegardeJSON(event){
   reader.readAsText(file,'UTF-8'); event.target.value='';
 }
 function synchroniserStockage(){
-  if(storageMode!=='drive'||!syncActive){showToast("⚠ Configure d'abord Google Drive.",true);return;}
+  if(storageMode!=='drive'||!syncActive){showToast('⚠ Configure Google Drive d\'abord.',true);return;}
   setSyncStatus('loading');
   apiCall('saveAll',{demandes:demandes,historique:historique}).then(function(r){if(r&&r.success===false) throw new Error();setSyncStatus('ok');showToast('✓ Synchronisation terminée.');}).catch(function(){setSyncStatus('error');showToast('⚠ Sync impossible.',true);});
 }
@@ -516,7 +516,7 @@ function chargerDepuisSheets(){
         rafraichirUI();
       }).catch(function(){
         setSyncStatus('error');
-        showToast('⚠ Impossible d'envoyer vers Google Sheets.',true);
+        showToast('⚠ Impossible d\'envoyer vers Google Sheets.',true);
         rafraichirUI();
       });
     } else {
