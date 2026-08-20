@@ -129,11 +129,13 @@
     .modal-header h3{font-size:16px;font-weight:700;}
     .modal-close{width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
     .modal-close:hover{background:var(--redbg);color:var(--red);border-color:#fecaca;}
-    .pj-upload-zone{border:2px dashed var(--border2);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg3);}
-    .pj-upload-zone:hover{border-color:var(--accent);background:var(--accentbg);}
     .pj-preview-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
     .pj-preview-item{display:flex;align-items:center;justify-content:space-between;background:var(--bluebg);border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;}
     .pj-remove{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;}
+    .lien-input-wrap{display:flex;gap:8px;margin-top:12px;}
+    .lien-input-wrap input{flex:1;}
+    .btn-add-lien{background:var(--accentbg);color:var(--accent2);border:1.5px solid #c7d2fe;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+    .btn-add-lien:hover{background:#ddd6fe;}
     .filtres-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;}
     @media(max-width:900px){.filtres-grid{grid-template-columns:1fr 1fr;}}
     .search-wrap{position:relative;}
@@ -279,8 +281,21 @@
   <div class="modal" style="max-width:520px;">
     <div class="modal-header"><h3>📎 Pièces jointes</h3><button class="modal-close" id="btnFermerPJ">✕</button></div>
     <input type="hidden" id="pjDemandeId">
-    <div class="pj-upload-zone" id="pjUploadZone"><div style="font-size:28px;">📂</div><p style="color:var(--text2);font-size:13px;margin-top:6px;">Cliquer pour ajouter un PDF</p><p style="font-size:11px;color:var(--text3);margin-top:4px;">ou glisser-déposer</p></div>
-    <input type="file" id="pjInput" accept="application/pdf" multiple style="display:none">
+    
+    <div style="background:var(--accentbg);border:1px solid #c7d2fe;border-radius:10px;padding:14px;margin-bottom:4px;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">📎 Ajouter un lien Google Drive</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+        1. Uploade ton PDF sur <a href="https://drive.google.com" target="_blank" style="color:var(--accent2);">Google Drive</a><br>
+        2. Clic droit → Partager → <strong>"Tout le monde avec le lien"</strong><br>
+        3. Copie le lien et colle-le ci-dessous
+      </p>
+      <div class="lien-input-wrap">
+        <input type="text" id="pjLienInput" placeholder="Colle le lien Google Drive ici...">
+        <input type="text" id="pjNomInput" placeholder="Nom du fichier (ex: Demande.pdf)" style="max-width:200px;">
+        <button class="btn-add-lien" id="btnAjouterLien">+ Ajouter</button>
+      </div>
+    </div>
+
     <div class="pj-preview-list" id="pjPreviewList"></div>
     <div class="btn-row" style="margin-top:16px;"><button class="btn btn-primary" id="btnSauvegarderPJ">💾 Enregistrer</button><button class="btn btn-ghost" id="btnFermerPJ2">Fermer</button></div>
   </div>
@@ -374,8 +389,8 @@ window.addEventListener('DOMContentLoaded',function(){
   document.getElementById('btnFermerPJ').addEventListener('click',fermerModalPJ);
   document.getElementById('btnFermerPJ2').addEventListener('click',fermerModalPJ);
   document.getElementById('modalPJ').addEventListener('click',function(e){if(e.target===this)fermerModalPJ();});
-  document.getElementById('pjUploadZone').addEventListener('click',function(){document.getElementById('pjInput').click();});
-  document.getElementById('pjInput').addEventListener('change',ajouterPJ);
+  document.getElementById('btnAjouterLien').addEventListener('click', ajouterLienPJ);
+  document.getElementById('pjLienInput').addEventListener('keydown', function(e){ if(e.key==='Enter') ajouterLienPJ(); });
   document.getElementById('btnSauvegarderPJ').addEventListener('click',sauvegarderPJ);
   document.addEventListener('keydown',function(e){if(e.key==='Escape'){fermerModal();fermerModalPJ();fermerStockage();}});
   initialiserStockage();
@@ -632,8 +647,19 @@ function afficherDemandes(){
       var opts=['En cours','Traitée','Annulée'].map(function(s){return'<option value="'+s+'"'+(d.statut===s?' selected':'')+'>'+s+'</option>';}).join('');
       var pa=stringToPostes(d.poste);
       var tags=pa.length?pa.map(function(p){return'<span class="poste-tag">'+p.poste+'<span class="eff-badge">x'+p.effectif+'</span></span>';}).join(''):'<span style="color:var(--text3)">—</span>';
-      var pjFiles=pjStore[String(d.id)]||[];
-      var pjHtml=pjFiles.length?pjFiles.map(function(pj){return'<a class="pj-item" data-id="'+d.id+'" data-nom="'+encodeURIComponent(pj.nom)+'">📄 '+pj.nom+'</a>';}).join(''):'<span style="color:var(--text3);font-size:12px">—</span>';
+      // Afficher les liens PJ
+      var pjHtml='<span style="color:var(--text3);font-size:12px">—</span>';
+      if(d.pieceJointe){
+        var liens=d.pieceJointe.split('||').filter(Boolean);
+        if(liens.length){
+          pjHtml=liens.map(function(s){
+            var parts=s.split('::');
+            var nom=parts[0]||'Fichier';
+            var lien=parts[1]||'#';
+            return '<a class="pj-item" href="'+lien+'" target="_blank">📄 '+nom+'</a>';
+          }).join('');
+        }
+      }
       // DG
       var dg=d.validationDG||'En attente';
       var dgCls=dg==='Validé'?'badge-dg-valide':dg==='Refusé'?'badge-dg-refuse':'badge-dg-attente';
@@ -667,7 +693,7 @@ function afficherDemandes(){
     tbody.querySelectorAll('.btn-edit').forEach(function(btn){btn.addEventListener('click',function(){ouvrirModal(this.getAttribute('data-id'));});});
     tbody.querySelectorAll('.btn-attach').forEach(function(btn){btn.addEventListener('click',function(){ouvrirModalPJ(this.getAttribute('data-id'));});});
     tbody.querySelectorAll('.btn-danger').forEach(function(btn){btn.addEventListener('click',function(){supprimerDemande(this.getAttribute('data-id'));});});
-    tbody.querySelectorAll('.pj-item').forEach(function(a){a.addEventListener('click',function(){ouvrirPDF(this.getAttribute('data-id'),this.getAttribute('data-nom'));});});
+    // pj-item sont maintenant de vrais liens href, pas besoin d'event listener
     tbody.querySelectorAll('.btn-dg-ok,.btn-dg-no,.btn-dg-rst').forEach(function(btn){btn.addEventListener('click',function(){changerValidationDG(this.getAttribute('data-id'),this.getAttribute('data-dg'));});});
   }
   document.getElementById('totalDemandes').textContent=demandes.length;
@@ -723,43 +749,80 @@ function sauvegarderModification(){
   showToast('✓ Demande modifiée !');
   if(syncActive) apiCall('updateDemande',{data:d}).then(function(){setSyncStatus('ok');}).catch(function(){setSyncStatus('error');});
 }
-function ouvrirModalPJ(id){document.getElementById('pjDemandeId').value=id;pjTemp=(pjStore[String(id)]||[]).map(function(p){return{nom:p.nom,data:p.data};});renderPJPreview();document.getElementById('modalPJ').classList.add('open');}
-function fermerModalPJ(){document.getElementById('modalPJ').classList.remove('open');pjTemp=[];}
-function ajouterPJ(event){
-  var files=Array.from(event.target.files),done=0; if(!files.length) return;
-  files.forEach(function(f){
-    if(pjTemp.find(function(p){return p.nom===f.name;})){done++;if(done===files.length)renderPJPreview();return;}
-    var reader=new FileReader();
-    reader.onload=function(e){pjTemp.push({nom:f.name,data:e.target.result});done++;if(done===files.length)renderPJPreview();};
-    reader.readAsDataURL(f);
-  }); event.target.value='';
+function ouvrirModalPJ(id){
+  document.getElementById('pjDemandeId').value=id;
+  // Charger les liens existants
+  var d=demandes.find(function(d){return String(d.id)===String(id);});
+  pjTemp = d && d.pieceJointe 
+    ? d.pieceJointe.split('||').filter(Boolean).map(function(s){
+        var parts=s.split('::');
+        return {nom:parts[0]||'Fichier',lien:parts[1]||'#'};
+      })
+    : [];
+  renderPJPreview();
+  document.getElementById('pjLienInput').value='';
+  document.getElementById('pjNomInput').value='';
+  document.getElementById('modalPJ').classList.add('open');
 }
+function fermerModalPJ(){
+  document.getElementById('modalPJ').classList.remove('open');
+  pjTemp=[];
+}
+function ajouterLienPJ(){
+  var lien=document.getElementById('pjLienInput').value.trim();
+  var nom=document.getElementById('pjNomInput').value.trim()||'Document';
+  if(!lien){showToast('⚠ Colle un lien Google Drive.',true);return;}
+  if(!lien.startsWith('http')){showToast('⚠ Le lien doit commencer par http...',true);return;}
+  if(pjTemp.find(function(p){return p.lien===lien;})){showToast('⚠ Ce lien est déjà ajouté.',true);return;}
+  pjTemp.push({nom:nom, lien:lien});
+  document.getElementById('pjLienInput').value='';
+  document.getElementById('pjNomInput').value='';
+  renderPJPreview();
+  showToast('✓ Lien ajouté !');
+}
+
 function renderPJPreview(){
   var list=document.getElementById('pjPreviewList');
-  if(!pjTemp.length){list.innerHTML='<p style="color:var(--text3);font-size:12px;text-align:center;padding:10px">Aucun fichier</p>';return;}
+  if(!pjTemp.length){
+    list.innerHTML='<p style="color:var(--text3);font-size:12px;text-align:center;padding:10px">Aucun lien ajouté</p>';
+    return;
+  }
   list.innerHTML='';
   pjTemp.forEach(function(pj){
     var item=document.createElement('div'); item.className='pj-preview-item';
-    var link=document.createElement('a'); link.href=pj.data; link.target='_blank';
-    link.style.cssText='color:var(--blue);font-size:13px;font-weight:500;text-decoration:none;display:flex;align-items:center;gap:6px;';
+    var link=document.createElement('a');
+    link.href=pj.lien; link.target='_blank';
+    link.style.cssText='color:var(--blue);font-size:13px;font-weight:500;text-decoration:none;display:flex;align-items:center;gap:6px;flex:1;';
     link.innerHTML='📄 '+pj.nom+' <span style="font-size:10px;background:var(--bluebg);padding:2px 6px;border-radius:4px;">Ouvrir</span>';
     var rem=document.createElement('button'); rem.className='pj-remove'; rem.textContent='✕';
-    (function(nom){rem.addEventListener('click',function(){pjTemp=pjTemp.filter(function(p){return p.nom!==nom;});renderPJPreview();});})(pj.nom);
+    (function(l){rem.addEventListener('click',function(){pjTemp=pjTemp.filter(function(p){return p.lien!==l;});renderPJPreview();});})(pj.lien);
     item.appendChild(link); item.appendChild(rem); list.appendChild(item);
   });
 }
-function ouvrirPDF(demandeId,nomEncode){
-  var nom=decodeURIComponent(nomEncode),files=pjStore[String(demandeId)]||[],pj=files.find(function(p){return p.nom===nom;});
-  if(!pj){showToast('⚠ Fichier non disponible.',true);return;}
-  var win=window.open(); win.document.write('<iframe src="'+pj.data+'" style="width:100%;height:100vh;border:none;"></iframe>');
+
+function ouvrirPDF(demandeId, nomEncode){
+  var nom=decodeURIComponent(nomEncode);
+  var d=demandes.find(function(d){return String(d.id)===String(demandeId);});
+  if(!d||!d.pieceJointe){showToast('⚠ Aucune pièce jointe.',true);return;}
+  var liens=d.pieceJointe.split('||').filter(Boolean);
+  var trouve=liens.find(function(s){return s.startsWith(nom+'::');});
+  if(trouve){
+    var lien=trouve.split('::')[1];
+    window.open(lien,'_blank');
+  } else {
+    showToast('⚠ Lien non trouvé.',true);
+  }
 }
+
 function sauvegarderPJ(){
-  var id=document.getElementById('pjDemandeId').value,d=demandes.find(function(d){return String(d.id)===String(id);});
+  var id=document.getElementById('pjDemandeId').value;
+  var d=demandes.find(function(d){return String(d.id)===String(id);});
   if(!d) return;
-  pjStore[String(id)]=pjTemp.map(function(p){return{nom:p.nom,data:p.data};}); d.pieceJointe=pjTemp.map(function(p){return p.nom;}).join('|');
+  // Stocker comme "nom::lien||nom::lien"
+  d.pieceJointe=pjTemp.map(function(p){return p.nom+'::'+p.lien;}).join('||');
   sauvegarderLocal(); rafraichirUI(); fermerModalPJ();
-  ajouterHistorique('PJ',d.demandeur+' — '+pjTemp.length+' fichier(s)');
-  showToast('✓ '+pjTemp.length+' pièce(s) enregistrée(s) !');
+  ajouterHistorique('PJ',d.demandeur+' — '+pjTemp.length+' lien(s)');
+  showToast('✓ '+pjTemp.length+' lien(s) enregistré(s) !');
   if(syncActive) apiCall('updateDemande',{data:d}).then(function(){setSyncStatus('ok');}).catch(function(){setSyncStatus('error');});
 }
 function exporterExcel(){
